@@ -351,6 +351,10 @@ Since this lambda function wraps the branch verification condition, there is no 
 
 This ```evaluate_branch_checkIn()``` method is also invoked internally in ***GemPBA*** so the ***DLB*** discards automatically a useless task, and skips to the next branch.
 
+<br />
+
+**Important**: In your main function (in which you initially call ```foo```), you need to instantiate an instance of ```BranchHandler``` and call ```branchHandler.initThreadPool(numOfThreads)``` with your desired number of threads.
+
 <br /> 
 <br />
 
@@ -413,8 +417,8 @@ Thus a way to set up the ```main.cpp``` would go like this.
 
 ```cpp
 
-#include "BranchHandler.hpp"
 #include "MPI_Scheduler.hpp"
+#include "BranchHandler.hpp"
 
 auto deserializer = [](std::stringstream &ss, auto &...args) {
     // - serialize arguments into stream ss
