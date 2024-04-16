@@ -51,148 +51,7 @@
 
 #define CENTER_NBSTORED_TASKS_PER_PROCESS 1000
 
-/*
- * Author:  David Robert Nadeau
- * Site:    http://NadeauSoftware.com/
- * License: Creative Commons Attribution 3.0 Unported License
- *          http://creativecommons.org/licenses/by/3.0/deed.en_US
- */
-
-#if defined(_WIN32)
-#include <windows.h>
-#include <psapi.h>
-
-#elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
-
-#include <unistd.h>
-#include <sys/resource.h>
-
-#if defined(__APPLE__) && defined(__MACH__)
-#include <mach/mach.h>
-
-#elif (defined(_AIX) || defined(__TOS__AIX__)) || (defined(__sun__) || defined(__sun) || defined(sun) && (defined(__SVR4) || defined(__svr4__)))
-#include <fcntl.h>
-#include <procfs.h>
-
-#elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
-
-#include <stdio.h>
-
-#endif
-
-#else
-#error "Cannot define getPeakRSS( ) or getCurrentRSS( ) for an unknown OS."
-#endif
-
-
-/**
-  Return number of bits that are set to 1
-**/
-int getNbSetBits(char c) {
-    //all credits to https://stackoverflow.com/questions/697978/c-code-to-count-the-number-of-1-bits-in-an-unsigned-char
-    return (c * 01001001001ULL & 042104210421ULL) % 017;
-}
-
-int getNbSetBits(std::pair<char *, int> task) {
-    int nb = 0;
-    for (int i = 0; i < task.second; ++i) {
-        nb += getNbSetBits(task.first[i]);
-    }
-    return nb;
-}
-
-class TaskComparator {
-public:
-    bool operator()(std::pair<char *, int> t1, std::pair<char *, int> t2) {
-
-        int n1 = getNbSetBits(t1);
-        int n2 = getNbSetBits(t2);
-
-        return (n1 <= n2);
-    }
-};
-
-
-/**
- * Returns the peak (maximum so far) resident set size (physical
- * memory use) measured in bytes, or zero if the value cannot be
- * determined on this OS.
- */
-size_t getPeakRSS() {
-#if defined(_WIN32)
-    /* Windows -------------------------------------------------- */
-    PROCESS_MEMORY_COUNTERS info;
-    GetProcessMemoryInfo(GetCurrentProcess(), &info, sizeof(info));
-    return (size_t)info.PeakWorkingSetSize;
-
-#elif (defined(_AIX) || defined(__TOS__AIX__)) || (defined(__sun__) || defined(__sun) || defined(sun) && (defined(__SVR4) || defined(__svr4__)))
-    /* AIX and Solaris ------------------------------------------ */
-    struct psinfo psinfo;
-    int fd = -1;
-    if ((fd = open("/proc/self/psinfo", O_RDONLY)) == -1)
-        return (size_t)0L; /* Can't open? */
-    if (read(fd, &psinfo, sizeof(psinfo)) != sizeof(psinfo))
-    {
-        close(fd);
-        return (size_t)0L; /* Can't read? */
-    }
-    close(fd);
-    return (size_t)(psinfo.pr_rssize * 1024L);
-
-#elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
-    /* BSD, Linux, and OSX -------------------------------------- */
-    struct rusage rusage;
-    getrusage(RUSAGE_SELF, &rusage);
-#if defined(__APPLE__) && defined(__MACH__)
-    return (size_t)rusage.ru_maxrss;
-#else
-    return (size_t) (rusage.ru_maxrss * 1024L);
-#endif
-
-#else
-    /* Unknown OS ----------------------------------------------- */
-    return (size_t)0L; /* Unsupported. */
-#endif
-}
-
-/**
- * Returns the current resident set size (physical memory use) measured
- * in bytes, or zero if the value cannot be determined on this OS.
- */
-size_t getCurrentRSS() {
-#if defined(_WIN32)
-    /* Windows -------------------------------------------------- */
-    PROCESS_MEMORY_COUNTERS info;
-    GetProcessMemoryInfo(GetCurrentProcess(), &info, sizeof(info));
-    return (size_t)info.WorkingSetSize;
-
-#elif defined(__APPLE__) && defined(__MACH__)
-    /* OSX ------------------------------------------------------ */
-    struct mach_task_basic_info info;
-    mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
-    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO,
-                  (task_info_t)&info, &infoCount) != KERN_SUCCESS)
-        return (size_t)0L; /* Can't access? */
-    return (size_t)info.resident_size;
-
-#elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
-    /* Linux ---------------------------------------------------- */
-    long rss = 0L;
-    FILE *fp = NULL;
-    if ((fp = fopen("/proc/self/statm", "r")) == NULL)
-        return (size_t) 0L; /* Can't open? */
-    if (fscanf(fp, "%*s%ld", &rss) != 1) {
-        fclose(fp);
-        return (size_t) 0L; /* Can't read? */
-    }
-    fclose(fp);
-    return (size_t) rss * (size_t) sysconf(_SC_PAGESIZE);
-
-#else
-    /* AIX, BSD, Solaris, and Unknown OS ------------------------ */
-    return (size_t)0L; /* Unsupported. */
-#endif
-}
+#include "MPI_Scheduler_Centralized_Utils.hpp"
 
 namespace GemPBA {
 
@@ -210,8 +69,8 @@ namespace GemPBA {
         double time_centerfull_sent = 0;
 
 
-        vector <std::pair<char *, int>> local_outqueue;
-        vector <std::pair<char *, int>> local_inqueue;
+        std::vector <std::pair<char *, int>> local_outqueue;
+        std::vector <std::pair<char *, int>> local_inqueue;
 
     public:
         static MPI_Scheduler &getInstance() {
@@ -499,7 +358,7 @@ namespace GemPBA {
                 MPI_Recv(&buf, 1, MPI_CHAR, CENTER, CENTER_IS_FULL_TAG, centerFullness_Comm, &status);
                 isCenterFull = true;
 #if DEBUG_COMMENTS
-                cout << "Node " << rank_me() << " received full center" << endl;
+                std::cout << "Node " << rank_me() << " received full center" << std::endl;
 #endif
             }
 
@@ -510,7 +369,7 @@ namespace GemPBA {
                 MPI_Recv(&buf, 1, MPI_CHAR, CENTER, CENTER_IS_FREE_TAG, centerFullness_Comm, &status);
                 isCenterFull = false;
 #if DEBUG_COMMENTS
-                cout << "Node " << rank_me() << " received free center" << endl;
+                std::cout << "Node " << rank_me() << " received free center" << std::endl;
 #endif
             }
 
@@ -584,9 +443,9 @@ namespace GemPBA {
 
             for (int rank = 1; rank < world_size; rank++) {
                 if (processState[rank] == STATE_AVAILABLE) {
-                    //pair<char *, size_t> msg = center_queue.back();
+                    //std::pair<char *, size_t> msg = center_queue.back();
                     //center_queue.pop_back();
-                    pair<char *, size_t> msg = center_queue.top();
+                    std::pair<char *, size_t> msg = center_queue.top();
                     center_queue.pop();
 
                     MPI_Send(msg.first, msg.second, MPI_CHAR, rank, TASK_FROM_CENTER_TAG, world_Comm);
@@ -614,7 +473,7 @@ namespace GemPBA {
                     center_last_full_status = true;
                     time_centerfull_sent = MPI_Wtime();
 
-                    //cout << "CENTER IS FULL" << endl;
+                    //std::cout << "CENTER IS FULL" << std::endl;
                 }
             } else {
                 // last iter, center was full but now it has space => warn others it's ok
@@ -626,14 +485,14 @@ namespace GemPBA {
                     }
                     center_last_full_status = false;
 
-                    //cout << "CENTER IS NOT FULL ANYMORE" << endl;
+                    //std::cout << "CENTER IS NOT FULL ANYMORE" << std::endl;
                 }
             }
         }
 
         /*	run the center node */
         void runCenter(const char *SEED, const int SEED_SIZE) {
-            cout << "Starting centralized scheduler" << endl;
+            std::cout << "Starting centralized scheduler" << std::endl;
             MPI_Barrier(world_Comm);
             start_time = MPI_Wtime();
 
@@ -654,19 +513,19 @@ namespace GemPBA {
 
                 /*if (nbloops % 100 == 0)
                 {
-                    cout<<"CENTER nb loops = "<<nbloops<<" nrunning="<<nRunning<<endl;
-                    cout<<"STATES=";
+                    std::cout<<"CENTER nb loops = "<<nbloops<<" nrunning="<<nRunning<<std::endl;
+                    std::cout<<"STATES=";
                     for (int i = 1; i < world_size;++i)
                     {
-                        cout<<processState[i]<<"  ";
+                        std::cout<<processState[i]<<"  ";
                     }
-                    cout<<endl;
-                    cout<<"WARNED=";
+                    std::cout<<std::endl;
+                    std::cout<<"WARNED=";
                     for (int i = 1; i < world_size;++i)
                     {
-                        cout<<processes_center_asked[i]<<"  ";
+                        std::cout<<processes_center_asked[i]<<"  ";
                     }
-                    cout<<endl;
+                    std::cout<<std::endl;
                 }*/
 
                 if (!flag) {
@@ -760,13 +619,13 @@ namespace GemPBA {
                         break;
                     case TASK_FOR_CENTER: {
 
-                        pair<char *, int> msg = make_pair(buffer_char, buffer_char_count);
+                        std::pair<char *, int> msg = std::make_pair(buffer_char, buffer_char_count);
                         //center_queue.push_back(msg);
                         center_queue.push(msg);
 
                         if (center_queue.size() > max_queue_size) {
                             if (center_queue.size() % 10000 == 0)
-                                cout << "CENTER queue size reached " << center_queue.size() << endl;
+                                std::cout << "CENTER queue size reached " << center_queue.size() << std::endl;
                             max_queue_size = center_queue.size();
                         }
 
@@ -792,9 +651,9 @@ namespace GemPBA {
                 handleFullMessaging();
             }
 
-            cout << "CENTER HAS TERMINATED" << endl;
-            cout << "Max queue size = " << max_queue_size << ",   Peak memory (MB) = " << getPeakRSS() / (1024 * 1024)
-                 << endl;
+            std::cout << "CENTER HAS TERMINATED" << std::endl;
+            std::cout << "Max queue size = " << max_queue_size << ",   Peak memory (MB) = " << getPeakRSS() / (1024 * 1024)
+                 << std::endl;
 
             /*
             after breaking the previous loop, all jobs are finished and the only remaining step
