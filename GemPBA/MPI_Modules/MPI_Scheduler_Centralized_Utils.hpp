@@ -9,6 +9,7 @@
 #ifndef MPI_SCHEDULER_CENTRALIZED_UTILS_HPP
 #define MPI_SCHEDULER_CENTRALIZED_UTILS_HPP
 
+#include <cstddef>
 #include <utility>
 
 /**

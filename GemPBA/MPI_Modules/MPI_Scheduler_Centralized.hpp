@@ -24,6 +24,11 @@
 #include <atomic>
 #include <memory>
 
+#include <cstddef>
+#include <utility>
+
+#include "MPI_Scheduler_Centralized_Utils.hpp"
+
 // max memory is in mb, e.g. 1024 * 10 = 10 GB
 #define MAX_MEMORY_MB 1024 * 10
 
@@ -50,8 +55,6 @@
 
 
 #define CENTER_NBSTORED_TASKS_PER_PROCESS 1000
-
-#include "MPI_Scheduler_Centralized_Utils.hpp"
 
 namespace GemPBA {
 

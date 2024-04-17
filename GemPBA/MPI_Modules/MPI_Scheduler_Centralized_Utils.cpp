@@ -7,6 +7,7 @@
 
 #include "MPI_Scheduler_Centralized_Utils.hpp"
 
+#include <cstddef>
 #include <utility>
 
 #if defined(_WIN32)
