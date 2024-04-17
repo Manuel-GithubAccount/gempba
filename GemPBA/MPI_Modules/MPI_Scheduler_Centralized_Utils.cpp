@@ -5,6 +5,10 @@
  *          http://creativecommons.org/licenses/by/3.0/deed.en_US
  */
 
+#include "MPI_Scheduler_Centralized_Utils.hpp"
+
+#include <utility>
+
 #if defined(_WIN32)
 #include <windows.h>
 #include <psapi.h>
@@ -30,8 +34,6 @@
 #else
 #error "Cannot define getPeakRSS( ) or getCurrentRSS( ) for an unknown OS."
 #endif
-
-#include "MPI_Scheduler_Centralized_Utils.hpp"
 
 /**
   Return number of bits that are set to 1
