@@ -62,12 +62,12 @@ In order to parallelise the previous code, the function signature should change 
 <br /> 
 
 ```cpp
-void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr);
+void foo(int id, MyClass instance, float f, double d, void *parent = nullptr);
 ```
 
 <br />
 
- Where ```tid``` stands for thread ID and ```parent``` is designed to used the *Novel Dynamic Load Balancing*.
+ Where ```id``` stands for thread ID and ```parent``` is designed to used the *Novel Dynamic Load Balancing*.
 
  These additional arguments are to be used by the library only, yet the user could also use them to track like threads utilization and other scenarios that it might find applicable.
 
@@ -80,7 +80,7 @@ auto &dlb = GemPBA::DLB_Handler::getInstance();
 auto &branchHandler = GemPBA::BranchHandler::getInstance();
 using HolderType = GemPBA::ResultHolder<void, MyClass, float, double>;
 
-void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr)
+void foo(int id, MyClass instance, float f, double d, void *parent = nullptr)
 
     // local solution might be the size of any input argument
 
@@ -114,15 +114,15 @@ void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr)
     /* The dynamic load balancing uses tracks the search tree using these
     temporary arguments holders.*/
 
-    HolderType rHolder_l(dlb, tid, parent);
-    HolderType rHolder_m(dlb, tid, parent);
-    HolderType rHolder_r(dlb, tid, parent);
+    HolderType rHolder_l(dlb, id, parent);
+    HolderType rHolder_m(dlb, id, parent);
+    HolderType rHolder_r(dlb, id, parent);
 
     /*  if parent is nullptr, then a virtual root is should be created
     such that branches within this scope can be accessed from below */
     if (!parent){
-        dummyParent = new HolderType(dlb, tid);
-        dlb.linkVirtualRoot(tid, dummyParent, rHolder_l, rHolder_m, rHolder_r);
+        dummyParent = new HolderType(dlb, id);
+        dlb.linkVirtualRoot(id, dummyParent, rHolder_l, rHolder_m, rHolder_r);
     }
 
     /* arguments for each branch should be constructed before making any
@@ -135,14 +135,14 @@ void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr)
 
     /*  The try_push_MT<>() method is aynchronous as long as an available
     processor is found, other wise, it explore branch in a senquential fashion*/
-    branchHandler.try_push_MT<void>(foo, tid, rHolder_l);
-    branchHandler.try_push_MT<void>(foo, tid, rHolder_m);
+    branchHandler.try_push_MT<void>(foo, id, rHolder_l);
+    branchHandler.try_push_MT<void>(foo, id, rHolder_m);
     
 
     /*  it makes no sense to call asynchronously the last branch, since it
     can be safely be executed sequentially, yet, if down the search tree,the owner thread of this search domain finds an available processor, 
     then this branch can be sent to another processor.*/
-    branchHandler.forward<void>(foo, tid, rHolder_r);
+    branchHandler.forward<void>(foo, id, rHolder_r);
 
     
     // if virtual root allocated, memory should be freed
@@ -189,7 +189,7 @@ auto &dlb = GemPBA::DLB_Handler::getInstance();
 auto &branchHandler = GemPBA::BranchHandler::getInstance();
 using HolderType = GemPBA::ResultHolder<void, MyClass, float, double>;
 
-void foo1(int tid, MyClass instance, float f, double d, void *parent = nullptr)
+void foo1(int id, MyClass instance, float f, double d, void *parent = nullptr)
 
     if (localSolution < branchHandler.refValue()){
         std::scoped_lock<std::mutex> lock(mtx); 
@@ -200,12 +200,12 @@ void foo1(int tid, MyClass instance, float f, double d, void *parent = nullptr)
 
     
     HolderType *dummyParent = nullptr;
-    HolderType rHolder_l(dlb, tid, parent);
-    HolderType rHolder_m(dlb, tid, parent);
-    HolderType rHolder_r(dlb, tid, parent);
+    HolderType rHolder_l(dlb, id, parent);
+    HolderType rHolder_m(dlb, id, parent);
+    HolderType rHolder_r(dlb, id, parent);
 
     if (!parent){
-        dummyParent = new HolderType(dlb, tid);
+        dummyParent = new HolderType(dlb, id);
         dlb.linkVirtualRoot(id, dummyParent, rHolder_l, rHolder_m, rHolder_r);
     }
 
@@ -213,9 +213,9 @@ void foo1(int tid, MyClass instance, float f, double d, void *parent = nullptr)
     rHolder_m.holdArgs(instance_m, f_m, d_m);
     rHolder_r.holdArgs(instance_r, f_r, d_r);
 
-    branchHandler.try_push_MT<void>(foo1, tid, rHolder_l);
-    branchHandler.try_push_MT<void>(foo2, tid, rHolder_m);
-    branchHandler.forward<void>(foo3, tid, rHolder_r);
+    branchHandler.try_push_MT<void>(foo1, id, rHolder_l);
+    branchHandler.try_push_MT<void>(foo2, id, rHolder_m);
+    branchHandler.forward<void>(foo3, id, rHolder_r);
 
     if (dummyParent)
             delete dummyParent;
@@ -227,7 +227,7 @@ void foo1(int tid, MyClass instance, float f, double d, void *parent = nullptr)
 
 If there is no interest in parallelising a branch, it can simply be invoked as its sequential fashion, however the two new arguments must be considered. For instance, the last branch.
 
-``` foo(tid, instance_r, f_r, d_r, nullptr) ```
+``` foo(id, instance_r, f_r, d_r, nullptr) ```
 
 If this branch is to be run sequentially, then no instance of ```GemPBA::ResultHolder``` should be created for it.
 
@@ -276,7 +276,7 @@ auto &dlb = GemPBA::DLB_Handler::getInstance();
 auto &branchHandler = GemPBA::BranchHandler::getInstance();
 using HolderType = GemPBA::ResultHolder<void, MyClass, float, double>;
 
-void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr)
+void foo(int id, MyClass instance, float f, double d, void *parent = nullptr)
 
     if (localSolution < branchHandler.refValue()){
         std::scoped_lock<std::mutex> lock(mtx); 
@@ -287,13 +287,13 @@ void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr)
     }
 
     HolderType *dummyParent = nullptr;
-    HolderType rHolder_l(dlb, tid, parent);
-    HolderType rHolder_m(dlb, tid, parent);
-    HolderType rHolder_r(dlb, tid, parent);
+    HolderType rHolder_l(dlb, id, parent);
+    HolderType rHolder_m(dlb, id, parent);
+    HolderType rHolder_r(dlb, id, parent);
 
     if (!parent){
-        dummyParent = new HolderType(dlb, tid);
-        dlb.linkVirtualRoot(tid, dummyParent, rHolder_l, rHolder_m, rHolder_r);
+        dummyParent = new HolderType(dlb, id);
+        dlb.linkVirtualRoot(id, dummyParent, rHolder_l, rHolder_m, rHolder_r);
     }
     
 
@@ -325,13 +325,13 @@ void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr)
                                   });
 
     if (rHolder_l.evaluate_branch_checkIn()){
-        branchHandler.try_push_MT<void>(foo, tid, rHolder_l);
+        branchHandler.try_push_MT<void>(foo, id, rHolder_l);
     }
     if (rHolder_m.evaluate_branch_checkIn()){
-        branchHandler.try_push_MT<void>(foo, tid, rHolder_m);
+        branchHandler.try_push_MT<void>(foo, id, rHolder_m);
     }
     if (rHolder_r.evaluate_branch_checkIn()){
-        branchHandler.forward<void>(foo, tid, rHolder_r);
+        branchHandler.forward<void>(foo, id, rHolder_r);
     }
 
     if (dummyParent)
@@ -665,7 +665,7 @@ auto &dlb = GemPBA::DLB_Handler::getInstance();
 auto &branchHandler = GemPBA::BranchHandler::getInstance();
 using HolderType = GemPBA::ResultHolder<void, MyClass, float, double>;
 
-void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr)
+void foo(int id, MyClass instance, float f, double d, void *parent = nullptr)
 
     if (localSolution < branchHandler.refValue()){
         std::scoped_lock<std::mutex> lock(mtx); 
@@ -676,13 +676,13 @@ void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr)
     }
 
     HolderType *dummyParent = nullptr;
-    HolderType rHolder_l(dlb, tid, parent);
-    HolderType rHolder_m(dlb, tid, parent);
-    HolderType rHolder_r(dlb, tid, parent);
+    HolderType rHolder_l(dlb, id, parent);
+    HolderType rHolder_m(dlb, id, parent);
+    HolderType rHolder_r(dlb, id, parent);
 
     if (!parent){
-        dummyParent = new HolderType(dlb, tid);
-        dlb.linkVirtualRoot(tid, dummyParent, rHolder_l, rHolder_m, rHolder_r);
+        dummyParent = new HolderType(dlb, id);
+        dlb.linkVirtualRoot(id, dummyParent, rHolder_l, rHolder_m, rHolder_r);
     }
     
 
@@ -714,13 +714,13 @@ void foo(int tid, MyClass instance, float f, double d, void *parent = nullptr)
                                   });
 
     if (rHolder_l.evaluate_branch_checkIn()){
-        branchHandler.try_push_MP<void>(foo, tid, rHolder_l, serializer);
+        branchHandler.try_push_MP<void>(foo, id, rHolder_l, serializer);
     }
     if (rHolder_m.evaluate_branch_checkIn()){
-        branchHandler.try_push_MP<void>(foo, tid, rHolder_m, serializer);
+        branchHandler.try_push_MP<void>(foo, id, rHolder_m, serializer);
     }
     if (rHolder_r.evaluate_branch_checkIn()){
-        branchHandler.forward<void>(foo, tid, rHolder_r);
+        branchHandler.forward<void>(foo, id, rHolder_r);
     }
 
     if (dummyParent)
