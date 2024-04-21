@@ -550,7 +550,7 @@ int main(){
     mpiScheduler.allgather(idleTime.data(), &idl_tm, MPI_DOUBLE);
 
     /* The user might want to print statistic or fetch the final solution, which is now stored 
-        in the center process, another if statement is required    */
+        in the center process, another if statement is required.    */
 
     if (rank == 0) { 
 		mpiScheduler.printStats();
