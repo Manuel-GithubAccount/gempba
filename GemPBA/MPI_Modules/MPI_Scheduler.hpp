@@ -55,10 +55,16 @@ namespace GemPBA {
             return world_rank;
         }
 
-        std::string fetchSolution() {
+        std::string fetchSolution(int* bestValue = nullptr) {
             for (int rank = 1; rank < world_size; rank++) {
                 if (bestResults[rank].first == refValueGlobal) {
-                    return bestResults[rank].second;
+		         
+		     		if (nullptr != bestValue)
+		            {
+		    	        *bestValue = refValueGlobal;
+		            }
+                    
+		            return bestResults[rank].second;
                 }
             }
             return {}; // no solution found
