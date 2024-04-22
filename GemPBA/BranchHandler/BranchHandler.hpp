@@ -38,6 +38,14 @@
 #include <typeinfo>
 #include <utility>
 
+#ifdef OBJECTIVE_DOUBLE
+	#define OBJECTIVE_TYPE double
+
+#else
+	#define OBJECTIVE_TYPE int
+
+#endif
+
 namespace GemPBA {
     template<typename _Ret, typename... Args>
     class ResultHolder;
@@ -98,7 +106,7 @@ namespace GemPBA {
             this->bestSolution = std::make_any<decltype(bestLocalSolution)>(bestLocalSolution);
         }
 
-        void holdSolution(int refValueLocal, auto &solution, auto &serializer) {
+        void holdSolution(OBJECTIVE_TYPE refValueLocal, auto &solution, auto &serializer) {
             std::unique_lock<std::mutex> lck(mtx);
             this->bestSolution_serialized.first = refValueLocal;
             this->bestSolution_serialized.second = serializer(solution);
@@ -160,12 +168,12 @@ namespace GemPBA {
             return std::any_cast<RESULT_TYPE>(bestSolution);
         }
 
-        int refValue() const {
+        OBJECTIVE_TYPE refValue() const {
             return refValueLocal;
         }
 
         // if multi-processing, then every process should call this method before starting
-        void setRefValue(int refValue) {
+        void setRefValue(OBJECTIVE_TYPE refValue) {
             this->refValueLocal = refValue;
         }
 
@@ -175,7 +183,7 @@ namespace GemPBA {
                 to the second parameter mostUpToDate if provided by reference
 
             - return true if successfuly updated*/
-        bool updateRefValue(int new_refValue, int *mostUpToDate = nullptr) {
+        bool updateRefValue(OBJECTIVE_TYPE new_refValue, OBJECTIVE_TYPE *mostUpToDate = nullptr) {
             std::scoped_lock<std::mutex> lck(mtx);
             if ((maximisation && new_refValue > refValueLocal) || (!maximisation && new_refValue < refValueLocal)) {
                 refValueLocal = new_refValue;
@@ -564,7 +572,7 @@ namespace GemPBA {
         /*This section refers to the strategy wrapping a function
             then pruning data to be use by the wrapped function<<---*/
         std::any bestSolution;
-        std::pair<int, std::string> bestSolution_serialized;
+        std::pair<OBJECTIVE_TYPE, std::string> bestSolution_serialized;
 
         DLB_Handler &dlb = GemPBA::DLB_Handler::getInstance();
 #ifdef R_SEARCH
@@ -621,7 +629,17 @@ namespace GemPBA {
                 return; // maximise by default
             } else if (keyword == "MINIMISE") {
                 maximisation = false;
-                refValueLocal = INT_MAX;
+
+				#ifdef OBJECTIVE_DOUBLE
+
+					refValueLocal = DBL_MAX;
+
+				#else
+				
+                	refValueLocal = INT_MAX;
+
+				#endif
+
 #ifdef MPI_ENABLED
                 mpiScheduler->setRefValStrategyLookup(maximisation); // TODO redundant
 #endif
@@ -631,7 +649,17 @@ namespace GemPBA {
 
         /*----------------Singleton----------------->>end*/
     protected:
-        int refValueLocal = INT_MIN;
+    	
+		#ifdef OBJECTIVE_DOUBLE
+
+			OBJECTIVE_TYPE refValueLocal = DBL_MIN;
+
+		#else	
+	   
+			OBJECTIVE_TYPE refValueLocal = INT_MIN;
+
+		#endif
+
         bool maximisation = true;
 
 #ifdef MPI_ENABLED

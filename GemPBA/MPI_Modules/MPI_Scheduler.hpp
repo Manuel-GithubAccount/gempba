@@ -39,6 +39,14 @@
 
 #define TIMEOUT_TIME 3
 
+#ifdef OBJECTIVE_DOUBLE
+	#define OBJECTIVE_TYPE double
+
+#else
+	#define OBJECTIVE_TYPE int
+
+#endif
+
 namespace GemPBA {
     class BranchHandler;
 
@@ -55,7 +63,7 @@ namespace GemPBA {
             return world_rank;
         }
 
-        std::string fetchSolution(int* bestValue = nullptr) {
+        std::string fetchSolution(OBJECTIVE_TYPE* bestValue = nullptr) {
             for (int rank = 1; rank < world_size; rank++) {
                 if (bestResults[rank].first == refValueGlobal) {
 		         
@@ -145,7 +153,16 @@ namespace GemPBA {
             this->maximisation = maximisation;
 
             if (!maximisation) // minimisation
-                refValueGlobal = INT_MAX;
+                
+				#ifdef OBJECTIVE_DOUBLE
+
+					refValueGlobal = DBL_MAX;
+
+				#else
+					
+					refValueGlobal = INT_MAX;
+
+				#endif
         }
 
         void runNode(auto &branchHandler, auto &&bufferDecoder, auto &&resultFetcher, auto &&serializer) {
@@ -303,7 +320,15 @@ namespace GemPBA {
                 fmt::print("rank {}, about to receive refValue from Center\n", world_rank);
 #endif
 
-                MPI_Recv(&refValueGlobal, 1, MPI_INT, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
+				#ifdef OBJECTIVE_DOUBLE
+
+					MPI_Recv(&refValueGlobal, 1, MPI_DOUBLE, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
+				
+				#else
+
+                	MPI_Recv(&refValueGlobal, 1, MPI_INT, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
+
+				#endif
 
 #ifdef DEBUG_COMMENTS
                 fmt::print("rank {}, received refValue: {} from Center\n", world_rank, refValueGlobal);
@@ -340,15 +365,24 @@ namespace GemPBA {
         // if ref value received, it attempts updating local value
         // if local value is better than the one in center, then local best value is sent to center
         void updateRefValue(auto &branchHandler) {
-            int _refGlobal = refValueGlobal;          // constant within this scope
-            int _refLocal = branchHandler.refValue(); // constant within this scope
+            OBJECTIVE_TYPE _refGlobal = refValueGlobal;          // constant within this scope
+            OBJECTIVE_TYPE _refLocal = branchHandler.refValue(); // constant within this scope
 
             // static size_t C = 0;
 
             if ((maximisation && _refGlobal > _refLocal) || (!maximisation && _refGlobal < _refLocal)) {
                 branchHandler.updateRefValue(_refGlobal);
             } else if ((maximisation && _refLocal > _refGlobal) || (!maximisation && _refLocal < _refGlobal)) {
-                MPI_Ssend(&_refLocal, 1, MPI_INT, 0, REFVAL_UPDATE_TAG, world_Comm);
+                
+				#ifdef OBJECTIVE_DOUBLE
+
+					MPI_Ssend(&_refLocal, 1, MPI_DOUBLE, 0, REFVAL_UPDATE_TAG, world_Comm);
+
+				#else
+				
+					MPI_Ssend(&_refLocal, 1, MPI_INT, 0, REFVAL_UPDATE_TAG, world_Comm);
+
+				#endif
             }
         }
 
@@ -463,7 +497,16 @@ namespace GemPBA {
                 MPI_Send(buffer.data(), buffer.size(), MPI_CHAR, 0, NO_RESULT_TAG, world_Comm);
             } else {
                 MPI_Send(buffer.data(), buffer.size(), MPI_CHAR, 0, HAS_RESULT_TAG, world_Comm);
-                MPI_Send(&refVal, 1, MPI_INT, 0, HAS_RESULT_TAG, world_Comm);
+                
+				#ifdef OBJECTIVE_DOUBLE
+
+					MPI_Send(&refVal, 1, MPI_DOUBLE, 0, HAS_RESULT_TAG, world_Comm);
+
+				#else
+				
+					MPI_Send(&refVal, 1, MPI_INT, 0, HAS_RESULT_TAG, world_Comm);
+
+				#endif
             }
         }
 
@@ -579,7 +622,16 @@ namespace GemPBA {
                             refValueGlobal = buffer;
                             signal = true;
                             for (int rank = 1; rank < world_size; rank++) {
-                                MPI_Send(&refValueGlobal, 1, MPI_INT, rank, REFVAL_UPDATE_TAG, refValueGlobal_Comm);
+                                
+								#ifdef OBJECTIVE_DOUBLE
+
+									MPI_Send(&refValueGlobal, 1, MPI_DOUBLE, rank, REFVAL_UPDATE_TAG, refValueGlobal_Comm);
+
+								#else
+									
+									MPI_Send(&refValueGlobal, 1, MPI_INT, rank, REFVAL_UPDATE_TAG, refValueGlobal_Comm);
+
+								#endif
                             }
 
                             // bcastPut(refValueGlobal, 1, MPI_INT, 0, win_refValueGlobal);
@@ -681,8 +733,17 @@ namespace GemPBA {
                     case HAS_RESULT_TAG: {
                         std::string buf(buffer, count);
 
-                        int refValue;
-                        MPI_Recv(&refValue, 1, MPI_INT, rank, HAS_RESULT_TAG, world_Comm, &status);
+                        OBJECTIVE_TYPE refValue;
+                        
+						#ifdef OBJECTIVE_DOUBLE
+
+							MPI_Recv(&refValue, 1, MPI_DOUBLE, rank, HAS_RESULT_TAG, world_Comm, &status);
+
+						#else
+
+							MPI_Recv(&refValue, 1, MPI_INT, rank, HAS_RESULT_TAG, world_Comm, &status);
+
+						#endif
 
                         bestResults[rank].first = refValue; // reference value corresponding to result
                         bestResults[rank].second = buf;        // best result so far from this rank
@@ -784,13 +845,13 @@ namespace GemPBA {
         MPI_Comm world_Comm;          // world communicator
 
         std::vector<int> next_process;
-        int refValueGlobal;
+        OBJECTIVE_TYPE refValueGlobal;
 
         int nxtProcess = -1;
 
         bool maximisation = true; // true if maximising, false if minimising
 
-        std::vector<std::pair<int, std::string>> bestResults;
+        std::vector<std::pair<OBJECTIVE_TYPE, std::string>> bestResults;
 
         size_t threads_per_process = std::thread::hardware_concurrency(); // detects the number of logical processors in machine
 
