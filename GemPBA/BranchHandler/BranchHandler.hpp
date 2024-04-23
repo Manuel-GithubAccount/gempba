@@ -39,6 +39,7 @@
 #include <utility>
 
 #ifdef OBJECTIVE_DOUBLE
+	#include <cfloat>
 	#define OBJECTIVE_TYPE double
 
 #else
@@ -540,7 +541,7 @@ namespace GemPBA {
         [[nodiscard]] auto constructResultFetcher() {
             return [this]() {
                 if (bestSolution_serialized.first == -1)
-                    return std::make_pair(0, static_cast<std::string>("Empty buffer, no result"));
+                    return std::make_pair((OBJECTIVE_TYPE) 0, static_cast<std::string>("Empty buffer, no result"));
                 else
                     return bestSolution_serialized;
             };

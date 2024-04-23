@@ -40,6 +40,7 @@
 #define TIMEOUT_TIME 3
 
 #ifdef OBJECTIVE_DOUBLE
+	#include <cfloat>
 	#define OBJECTIVE_TYPE double
 
 #else
@@ -810,10 +811,19 @@ namespace GemPBA {
             processState.resize(world_size, STATE_AVAILABLE);
             processTree.resize(world_size);
             next_process.resize(world_size, -1);
-            refValueGlobal = INT_MIN;
+            
+			#ifdef OBJECTIVE_DOUBLE
+			
+				refValueGlobal = DBL_MIN;
+
+			#else
+				
+				refValueGlobal = INT_MIN;
+
+			#endif
 
             if (world_rank == 0)
-                bestResults.resize(world_size, std::make_pair(-1, std::string()));
+                bestResults.resize(world_size, std::make_pair((OBJECTIVE_TYPE) -1, std::string()));
 
             transmitting = false;
         }

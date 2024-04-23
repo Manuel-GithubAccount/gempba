@@ -57,6 +57,7 @@
 #define CENTER_NBSTORED_TASKS_PER_PROCESS 1000
 
 #ifdef OBJECTIVE_DOUBLE
+	#include <cfloat>
 	#define OBJECTIVE_TYPE double
 
 #else
@@ -465,7 +466,7 @@ namespace GemPBA {
                 
                 #ifdef OBJECTIVE_DOUBLE
 
-                    MPI_Sendd(&refVal, 1, MPI_DOUBLE, 0, HAS_RESULT_TAG, world_Comm);
+                    MPI_Send(&refVal, 1, MPI_DOUBLE, 0, HAS_RESULT_TAG, world_Comm);
 
                 #else
                 
@@ -867,10 +868,18 @@ namespace GemPBA {
             processTree.resize(world_size);
             max_queue_size = 0;
 
-            refValueGlobal = INT_MIN;
+			#ifdef OBJECTIVE_DOUBLE
+
+				refValueGlobal = DBL_MIN;
+
+			#else
+            	
+				refValueGlobal = INT_MIN;
+
+			#endif
 
             if (world_rank == 0)
-                bestResults.resize(world_size, std::make_pair(-1, std::string()));
+                bestResults.resize(world_size, std::make_pair((OBJECTIVE_TYPE) -1, std::string()));
 
             transmitting = false;
         }
