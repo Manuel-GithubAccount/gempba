@@ -42,9 +42,11 @@
 #ifdef OBJECTIVE_DOUBLE
 	#include <cfloat>
 	#define OBJECTIVE_TYPE double
+	#pragma message("objective type: double")
 
 #else
 	#define OBJECTIVE_TYPE int
+	#pragma message("objective type: int")
 
 #endif
 
@@ -530,12 +532,21 @@ namespace GemPBA {
             int rcv_availability = 0;
 
             while (true) {
-                int buffer;
+                OBJECTIVE_TYPE buffer;
                 MPI_Status status;
                 MPI_Request request;
                 int ready;
                 double begin = MPI_Wtime();
-                MPI_Irecv(&buffer, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, world_Comm, &request);
+                
+				#ifdef OBJECTIVE_DOUBLE
+
+					MPI_Irecv(&buffer, 1, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, world_Comm, &request);
+
+				#else
+				
+					MPI_Irecv(&buffer, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, world_Comm, &request);
+
+				#endif
 
                 if (!awaitMessage(buffer, ready, begin, status, request))
                     break;

@@ -41,9 +41,11 @@
 #ifdef OBJECTIVE_DOUBLE
 	#include <cfloat>
 	#define OBJECTIVE_TYPE double
+	#pragma message("objective type: double")
 
 #else
 	#define OBJECTIVE_TYPE int
+	#pragma message("objective type: int")
 
 #endif
 

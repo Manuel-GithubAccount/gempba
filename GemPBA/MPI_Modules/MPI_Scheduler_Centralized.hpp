@@ -59,9 +59,11 @@
 #ifdef OBJECTIVE_DOUBLE
 	#include <cfloat>
 	#define OBJECTIVE_TYPE double
+	#pragma message("objective type: double")
 
 #else
 	#define OBJECTIVE_TYPE int
+	#pragma message("objective type: int")
 
 #endif
 
@@ -363,7 +365,15 @@ namespace GemPBA {
                 fmt::print("rank {}, about to receive refValue from Center\n", world_rank);
 #endif
 
-                MPI_Recv(&refValueGlobal, 1, MPI_INT, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
+				#ifdef OBJECTIVE_DOUBLE
+
+					MPI_Recv(&refValueGlobal, 1, MPI_DOUBLE, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
+
+				#else
+				
+					MPI_Recv(&refValueGlobal, 1, MPI_INT, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
+
+				#endif
 
 #ifdef DEBUG_COMMENTS
                 fmt::print("rank {}, received refValue: {} from Center\n", world_rank, refValueGlobal);
@@ -546,7 +556,7 @@ namespace GemPBA {
             int nbloops = 0;
             while (true) {
                 nbloops++;
-                int buffer;
+                OBJECTIVE_TYPE buffer;
                 char *buffer_char = nullptr;
                 int buffer_char_count = 0;
                 MPI_Status status;
@@ -606,7 +616,16 @@ namespace GemPBA {
                     MPI_Recv(buffer_char, buffer_char_count, MPI_CHAR, status.MPI_SOURCE, status.MPI_TAG, world_Comm,
                              &status);
                 } else {
-                    MPI_Recv(&buffer, 1, MPI_INT, status.MPI_SOURCE, status.MPI_TAG, world_Comm, &status);
+                    
+					#ifdef OBJECTIVE_DOUBLE
+
+						MPI_Recv(&buffer, 1, MPI_DOUBLE, status.MPI_SOURCE, status.MPI_TAG, world_Comm, &status);
+
+					#else
+						
+						MPI_Recv(&buffer, 1, MPI_INT, status.MPI_SOURCE, status.MPI_TAG, world_Comm, &status);
+
+					#endif
                 }
 
                 switch (status.MPI_TAG) {
