@@ -57,13 +57,13 @@
 #define CENTER_NBSTORED_TASKS_PER_PROCESS 1000
 
 #ifdef OBJECTIVE_DOUBLE
-	#include <cfloat>
-	#define OBJECTIVE_TYPE double
-	#pragma message("objective type: double")
+    #include <cfloat>
+    #define OBJECTIVE_TYPE double
+    #pragma message("objective type: double")
 
 #else
-	#define OBJECTIVE_TYPE int
-	#pragma message("objective type: int")
+    #define OBJECTIVE_TYPE int
+    #pragma message("objective type: int")
 
 #endif
 
@@ -365,15 +365,15 @@ namespace GemPBA {
                 fmt::print("rank {}, about to receive refValue from Center\n", world_rank);
 #endif
 
-				#ifdef OBJECTIVE_DOUBLE
+                #ifdef OBJECTIVE_DOUBLE
 
-					MPI_Recv(&refValueGlobal, 1, MPI_DOUBLE, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
+                    MPI_Recv(&refValueGlobal, 1, MPI_DOUBLE, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
 
-				#else
-				
-					MPI_Recv(&refValueGlobal, 1, MPI_INT, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
+                #else
+                
+                    MPI_Recv(&refValueGlobal, 1, MPI_INT, CENTER, REFVAL_UPDATE_TAG, refValueGlobal_Comm, &status);
 
-				#endif
+                #endif
 
 #ifdef DEBUG_COMMENTS
                 fmt::print("rank {}, received refValue: {} from Center\n", world_rank, refValueGlobal);
@@ -617,15 +617,15 @@ namespace GemPBA {
                              &status);
                 } else {
                     
-					#ifdef OBJECTIVE_DOUBLE
+                    #ifdef OBJECTIVE_DOUBLE
 
-						MPI_Recv(&buffer, 1, MPI_DOUBLE, status.MPI_SOURCE, status.MPI_TAG, world_Comm, &status);
+                        MPI_Recv(&buffer, 1, MPI_DOUBLE, status.MPI_SOURCE, status.MPI_TAG, world_Comm, &status);
 
-					#else
-						
-						MPI_Recv(&buffer, 1, MPI_INT, status.MPI_SOURCE, status.MPI_TAG, world_Comm, &status);
+                    #else
+                        
+                        MPI_Recv(&buffer, 1, MPI_INT, status.MPI_SOURCE, status.MPI_TAG, world_Comm, &status);
 
-					#endif
+                    #endif
                 }
 
                 switch (status.MPI_TAG) {
@@ -639,7 +639,9 @@ namespace GemPBA {
                         break;
                     case STATE_AVAILABLE: {
 #ifdef DEBUG_COMMENTS
-                        fmt::print("center received state_available from rank {}\n", status.MPI_SOURCE);
+                        fmt::print("center received state_available from rank {}, current queue size {}\n", 
+                    status.MPI_SOURCE,
+                    center_queue.size());
 #endif
                         processState[status.MPI_SOURCE] = STATE_AVAILABLE;
                         ++nAvailable;
@@ -887,15 +889,15 @@ namespace GemPBA {
             processTree.resize(world_size);
             max_queue_size = 0;
 
-			#ifdef OBJECTIVE_DOUBLE
+            #ifdef OBJECTIVE_DOUBLE
 
-				refValueGlobal = DBL_MIN;
+                refValueGlobal = DBL_MIN;
 
-			#else
-            	
-				refValueGlobal = INT_MIN;
+            #else
+                
+                refValueGlobal = INT_MIN;
 
-			#endif
+            #endif
 
             if (world_rank == 0)
                 bestResults.resize(world_size, std::make_pair((OBJECTIVE_TYPE) -1, std::string()));
