@@ -16,9 +16,11 @@
 
     #ifdef OBJECTIVE_DOUBLE
         #define OBJECTIVE_TYPE double
+        #pragma message("objective type: double")
     
     #else
         #define OBJECTIVE_TYPE int
+        #pragma message("objective type: int")
 
     #endif
 
