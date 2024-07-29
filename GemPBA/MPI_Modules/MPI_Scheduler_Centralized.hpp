@@ -499,7 +499,7 @@ namespace GemPBA {
             for (int rank = 1; rank < world_size; rank++) {
                 if (processState[rank] == STATE_AVAILABLE) {
                     
-                    while ((processState[rank] != STATE_ASSIGNED) || !center_queue.empty())
+                    while ((processState[rank] != STATE_ASSIGNED) && !center_queue.empty())
                     {
                         //std::pair<char *, size_t> msg = center_queue.back();
                         //center_queue.pop_back();
@@ -507,7 +507,7 @@ namespace GemPBA {
                         center_queue.pop();
                     
                         #ifdef BRANCH_AND_BOUND
-			    OBJECTIVE_TYPE objValue = getObjectiveValue(msg.first);
+                            OBJECTIVE_TYPE objValue = getObjectiveValue(msg.first);
                             if (   ( maximisation && (objValue > refValueGlobal))
                                 || (!maximisation && (objValue < refValueGlobal)))
                             {
