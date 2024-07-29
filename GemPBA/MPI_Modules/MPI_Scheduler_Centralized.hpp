@@ -507,13 +507,25 @@ namespace GemPBA {
                         center_queue.pop();
                     
                         #ifdef BRANCH_AND_BOUND
-                            if (   ( maximisation && (getObjectiveValue(msg.first) > refValueGlobal))
-                                || (!maximisation && (getObjectiveValue(msg.first) < refValueGlobal)))
+			    OBJECTIVE_TYPE objValue = getObjectiveValue(msg.first);
+                            if (   ( maximisation && (objValue > refValueGlobal))
+                                || (!maximisation && (objValue < refValueGlobal)))
                             {
+#ifdef DEBUG_COMMENTS
+				                fmt::print("center: using objective value {}\n", objValue), 
+#endif
+
                                 MPI_Send(msg.first, msg.second, MPI_CHAR, rank, TASK_FROM_CENTER_TAG, world_Comm);
                                 delete[] msg.first;
                                 processState[rank] = STATE_ASSIGNED;
                             }
+			    
+                            else
+			                {
+#ifdef DEBUG_COMMENTS
+				                fmt::print("center: rejecting objective value {}\n", objValue), 
+#endif
+			                }
 
                         #else
                             MPI_Send(msg.first, msg.second, MPI_CHAR, rank, TASK_FROM_CENTER_TAG, world_Comm);
