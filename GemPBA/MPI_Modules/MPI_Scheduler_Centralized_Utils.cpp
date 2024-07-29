@@ -44,10 +44,10 @@
         char* end{};
     
         // get the length of the archiv marker
-        int length  = strtol(ArchivString, &end, 10);
+        int length  = strtol(archiveString, &end, 10);
     
         // calculate the start of version-number
-        end ++;
+        end++;
         end += length;
     
         // forward "end" to the first semantic value and ignore archive version
