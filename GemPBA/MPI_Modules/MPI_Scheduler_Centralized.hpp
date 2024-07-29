@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <atomic>
 #include <memory>
+#include <set>
 
 #include <cstddef>
 #include <utility>
@@ -85,6 +86,11 @@ namespace GemPBA {
 
         std::vector <std::pair<char *, int>> local_outqueue;
         std::vector <std::pair<char *, int>> local_inqueue;
+
+        // used for debugging:
+        // stores all task strings.
+        // Note: may grow big...
+        std::set<std::string> taskArchive{};
 
     public:
         static MPI_Scheduler &getInstance() {
@@ -722,9 +728,27 @@ namespace GemPBA {
                         break;
                     case TASK_FOR_CENTER: {
 
-                        std::pair<char *, int> msg = std::make_pair(buffer_char, buffer_char_count);
-                        //center_queue.push_back(msg);
-                        center_queue.push(msg);
+
+                        // store new task in taskArchive (for debugging purpose)
+                        std::string buffer_string(buffer_char);
+                        std::set<std::string>::iterator it = taskArchive.find(buffer_string);
+                        if (it == taskArchive.end())
+                        {
+                            std::pair<char *, int> msg = std::make_pair(buffer_char, buffer_char_count);
+                            //center_queue.push_back(msg);
+                            center_queue.push(msg);
+
+                            taskArchive.insert(buffer_string);
+                        }
+                        else
+                        {
+                            // ERROR!!
+                            // task already handled
+#ifdef DEBUG_COMMENTS
+                            fmt::print("center received duplicate task from rank {}, current queue size {}\n",
+                                    status.MPI_SOURCE, center_queue.size());
+#endif
+                        }
 
                         if (center_queue.size() > max_queue_size) {
                             if (center_queue.size() % 10000 == 0)
