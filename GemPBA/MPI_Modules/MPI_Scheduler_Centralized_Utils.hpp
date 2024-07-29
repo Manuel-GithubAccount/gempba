@@ -12,12 +12,28 @@
 #include <cstddef>
 #include <utility>
 
-/**
- * Return number of bits that are set to 1
- */
-int getNbSetBits(char c);
+#ifdef BRANCH_AND_BOUND
 
-int getNbSetBits(std::pair<char *, int> task);
+    #ifdef OBJECTIVE_DOUBLE
+        #define OBJECTIVE_TYPE double
+    
+    #else
+        #define OBJECTIVE_TYPE int
+
+    #endif
+
+    OBJECTIVE_TYPE getObjectiveValue(char* archiveString);
+
+#else
+
+    /**
+     * Return number of bits that are set to 1
+     */
+    int getNbSetBits(char c);
+
+    int getNbSetBits(std::pair<char *, int> task);
+
+#endif
 
 class TaskComparator {
 public:

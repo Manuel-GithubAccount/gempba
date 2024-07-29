@@ -39,7 +39,7 @@
 #ifdef BRANCH_AND_BOUND
     #include <cstdlib>
 
-    double getObjectiveValue(char * ArchivString)
+    OBJECTIVE_TYPE getObjectiveValue(char* archiveString)
     {
         char* end{};
     
@@ -50,15 +50,15 @@
         end ++;
         end += length;
     
-        // get archiv version number (and forward "end" to the first
-        // semantic value
-        int archiveVersion  = strtol( end, &end, 10);
+        // forward "end" to the first semantic value and ignore archive version
+        // number
+        strtol(end, &end, 10);
         end++;
     
         // read the objective value
-        double value = strtod( end, &end );
+        double value = strtod(end, &end);
     
-        return value;
+        return static_cast<OBJECTIVE_TYPE>(value);
     }
 
 #else
