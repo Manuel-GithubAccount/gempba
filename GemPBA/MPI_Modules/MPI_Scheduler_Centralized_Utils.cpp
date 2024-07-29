@@ -36,28 +36,62 @@
 #error "Cannot define getPeakRSS( ) or getCurrentRSS( ) for an unknown OS."
 #endif
 
-/**
-  Return number of bits that are set to 1
-**/
-int getNbSetBits(char c) {
-    //all credits to https://stackoverflow.com/questions/697978/c-code-to-count-the-number-of-1-bits-in-an-unsigned-char
-    return (c * 01001001001ULL & 042104210421ULL) % 017;
-}
+#ifdef BRANCH_AND_BOUND
+    #include <cstdlib>
 
-int getNbSetBits(std::pair<char *, int> task) {
-    int nb = 0;
-    for (int i = 0; i < task.second; ++i) {
-        nb += getNbSetBits(task.first[i]);
+    double getObjectiveValue(char * ArchivString)
+    {
+        char* end{};
+    
+        // get the length of the archiv marker
+        int length  = strtol(ArchivString, &end, 10);
+    
+        // calculate the start of version-number
+        end ++;
+        end += length;
+    
+        // get archiv version number (and forward "end" to the first
+        // semantic value
+        int archiveVersion  = strtol( end, &end, 10);
+        end++;
+    
+        // read the objective value
+        double value = strtod( end, &end );
+    
+        return value;
     }
-    return nb;
-}
+
+#else
+    /**
+      Return number of bits that are set to 1
+    **/
+    int getNbSetBits(char c) {
+        //all credits to https://stackoverflow.com/questions/697978/c-code-to-count-the-number-of-1-bits-in-an-unsigned-char
+        return (c * 01001001001ULL & 042104210421ULL) % 017;
+    }
+    
+    int getNbSetBits(std::pair<char *, int> task) {
+        int nb = 0;
+        for (int i = 0; i < task.second; ++i) {
+            nb += getNbSetBits(task.first[i]);
+        }
+        return nb;
+    }
+
+#endif
 
 bool TaskComparator::operator()(std::pair<char *, int> t1, std::pair<char *, int> t2) {
 
-	int n1 = getNbSetBits(t1);
-	int n2 = getNbSetBits(t2);
+    #ifdef BRANCH_AND_BOUND
+       return getObjectiveValue(t1.first) <= getObjectiveValue(t2.first);  
+    
+    #else
+        int n1 = getNbSetBits(t1);
+	    int n2 = getNbSetBits(t2);
 
-	return (n1 <= n2);
+	    return (n1 <= n2);
+
+    #endif
 }
 
 
