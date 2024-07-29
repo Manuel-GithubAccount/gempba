@@ -512,7 +512,7 @@ namespace GemPBA {
                                 || (!maximisation && (objValue < refValueGlobal)))
                             {
 #ifdef DEBUG_COMMENTS
-				                fmt::print("center: using objective value {}\n", objValue), 
+				                fmt::print("center: using objective value {}\n", objValue); 
 #endif
 
                                 MPI_Send(msg.first, msg.second, MPI_CHAR, rank, TASK_FROM_CENTER_TAG, world_Comm);
@@ -523,7 +523,7 @@ namespace GemPBA {
                             else
 			                {
 #ifdef DEBUG_COMMENTS
-				                fmt::print("center: rejecting objective value {}\n", objValue), 
+				                fmt::print("center: rejecting objective value {}\n", objValue); 
 #endif
 			                }
 
