@@ -83,7 +83,14 @@
 bool TaskComparator::operator()(std::pair<char *, int> t1, std::pair<char *, int> t2) {
 
     #ifdef BRANCH_AND_BOUND
-       return getObjectiveValue(t1.first) <= getObjectiveValue(t2.first);  
+        
+        #ifdef MINIMISATION
+            return getObjectiveValue(t1.first) <= getObjectiveValue(t2.first);
+
+        #else
+            return getObjectiveValue(t1.first) >= getObjectiveValue(t2.first);
+
+        #endif
     
     #else
         int n1 = getNbSetBits(t1);
