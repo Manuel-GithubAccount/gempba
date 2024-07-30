@@ -742,3 +742,26 @@ Internally, ```try_push_MP``` will invoke the ```MpiScheduler``` to ascertain fo
 ```try_push_MT``` and ```try_push_MP``` return ```true``` if the asynchronous operation was succeeding, otherwise, it will continue sequentially and when it returns, it will be ```false```.
 
 **Hint**: Depending on your project's structure, additional imports might be required because of hidden dependencies inside the *GemPBA* library.
+
+### Multiprocessing with centralized scheduler
+
+The *GemPBA* library includes a centralized scheduler as well. The usage is almost the same as with the semicentralized scheduler. It can be activated by using the compile flag ```-D SCHEDULER_CENTRALIZE```.
+
+Additionally one need to include the centralized scheduler instead of the semicentralized scheduler:
+
+```cpp
+#include "MPI_Scheduler_Centralized.hpp"
+```
+
+#### Parallel Branch-and-Bound with centralized scheduler
+
+If the user would like to implement a parallel Brach-and-Bound algorithm using the centralized scheduler, there are a few things to consider:
+
+- Use boost for serialization
+- Use compile flag ```-D BRANCH_AND_BOUND```
+- If minimising: Use compile flag ```-D MINIMISING```
+- Always use the parent's objective value as first parameter of your branching function
+
+The last point requires to change the function signature as follows:
+
+```void foo(int tid, OBJECTIVE_TYPE previousObjective, MyClass instance, float f, double d, void *parent = nullptr)```

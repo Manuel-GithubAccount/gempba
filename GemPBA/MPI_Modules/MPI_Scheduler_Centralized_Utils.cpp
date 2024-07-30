@@ -46,7 +46,7 @@
         // get the length of the archiv marker
         int length  = strtol(archiveString, &end, 10);
     
-        // calculate the start of version-number
+        // calculate the start of version number
         end++;
         end += length;
     
