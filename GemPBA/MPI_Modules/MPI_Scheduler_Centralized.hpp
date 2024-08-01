@@ -83,14 +83,8 @@ namespace GemPBA {
 
         double time_centerfull_sent = 0;
 
-
         std::vector <std::pair<char *, int>> local_outqueue;
         std::vector <std::pair<char *, int>> local_inqueue;
-
-        // used for debugging:
-        // stores all task strings.
-        // Note: may grow big...
-        std::set<std::string> taskArchive{};
 
     public:
         static MPI_Scheduler &getInstance() {
@@ -245,6 +239,7 @@ namespace GemPBA {
                 char *message = new char[count];
                 MPI_Recv(message, count, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, world_Comm, &status);
 
+
                 if (isTerminated(status.MPI_TAG)) {
                     delete[] message;
                     break;
@@ -255,8 +250,10 @@ namespace GemPBA {
                     notifyRunningState();
                     nTasksRecvd++;
 
+                    std::string msg(message,count);
+
 #ifdef DEBUG_COMMENTS
-                    fmt::print("rank {}, pushing buffer to thread pool", world_rank, status.MPI_SOURCE);
+                    fmt::print("rank {}, pushing buffer to thread pool, msg {}", world_rank, status.MPI_SOURCE, msg);
 #endif
                     //  push to the thread pool *********************************************************************
                     auto *holder = bufferDecoder(message, count); // holder might be useful for non-void functions
@@ -674,8 +671,8 @@ namespace GemPBA {
                     case STATE_AVAILABLE: {
 #ifdef DEBUG_COMMENTS
                         fmt::print("center received state_available from rank {}, current queue size {}\n", 
-                    status.MPI_SOURCE,
-                    center_queue.size());
+                                    status.MPI_SOURCE,
+                                    center_queue.size());
 #endif
                         processState[status.MPI_SOURCE] = STATE_AVAILABLE;
                         ++nAvailable;
@@ -727,28 +724,9 @@ namespace GemPBA {
                     }
                         break;
                     case TASK_FOR_CENTER: {
-
-
-                        // store new task in taskArchive (for debugging purpose)
-                        std::string buffer_string(buffer_char);
-                        std::set<std::string>::iterator it = taskArchive.find(buffer_string);
-                        if (it == taskArchive.end())
-                        {
-                            std::pair<char *, int> msg = std::make_pair(buffer_char, buffer_char_count);
-                            //center_queue.push_back(msg);
-                            center_queue.push(msg);
-
-                            taskArchive.insert(buffer_string);
-                        }
-                        else
-                        {
-                            // ERROR!!
-                            // task already handled
-#ifdef DEBUG_COMMENTS
-                            fmt::print("center received duplicate task from rank {}, current queue size {}\n",
-                                    status.MPI_SOURCE, center_queue.size());
-#endif
-                        }
+                        std::pair<char *, int> msg = std::make_pair(buffer_char, buffer_char_count);
+                        //center_queue.push_back(msg);
+                        center_queue.push(msg);
 
                         if (center_queue.size() > max_queue_size) {
                             if (center_queue.size() % 10000 == 0)
@@ -757,7 +735,6 @@ namespace GemPBA {
                         }
 
                         ++totalRequests;
-
 
                         if (center_queue.size() > 2 * CENTER_NBSTORED_TASKS_PER_PROCESS * world_size) {
                             if (difftime(time_centerfull_sent, MPI_Wtime() > 1)) {
@@ -768,7 +745,10 @@ namespace GemPBA {
                         }
 
 #ifdef DEBUG_COMMENTS
-                        fmt::print("center received task from {}, current queue size is {}\n", status.MPI_SOURCE, center_queue.size());
+                        fmt::print("center received task from {},msg {}, current queue size is {}\n",
+                                   status.MPI_SOURCE,
+                                   msg,
+                                   center_queue.size());
 #endif
                     }
                         break;
@@ -983,8 +963,6 @@ namespace GemPBA {
         MPI_Comm centerFullness_Comm;
 
         MPI_Comm world_Comm; // world communicator
-
-
 
         OBJECTIVE_TYPE refValueGlobal;
 
