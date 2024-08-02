@@ -41,6 +41,9 @@
 
     OBJECTIVE_TYPE getObjectiveValue(char* archiveString)
     {
+        // assumption the message is generated with boost serialization
+        // and starts with a string like "22 archive::serialization 18" 
+        // followed by the objective value
         char* end{};
     
         // get the length of the archiv marker

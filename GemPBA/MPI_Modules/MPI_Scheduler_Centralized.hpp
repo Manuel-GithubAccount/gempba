@@ -250,9 +250,9 @@ namespace GemPBA {
                     notifyRunningState();
                     nTasksRecvd++;
 
-                    std::string msg(message,count);
 
 #ifdef DEBUG_COMMENTS
+                    std::string msg(message,count);
                     fmt::print("rank {}, pushing buffer to thread pool, msg {}", world_rank, status.MPI_SOURCE, msg);
 #endif
                     //  push to the thread pool *********************************************************************
@@ -745,9 +745,10 @@ namespace GemPBA {
                         }
 
 #ifdef DEBUG_COMMENTS
+                        std::string message(buffer_char, buffer_char_count);
                         fmt::print("center received task from {},msg {}, current queue size is {}\n",
                                    status.MPI_SOURCE,
-                                   msg,
+                                   message,
                                    center_queue.size());
 #endif
                     }
